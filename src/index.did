@@ -1,0 +1,24 @@
+type Language = record { id : text; title : text };
+type Topic = record {
+  id : text;
+  closed : bool;
+  title : text;
+  language_id : text;
+};
+type TopicPayload = record { closed : bool; title : text };
+type _AzleResult = variant { Ok : Language; Err : text };
+type _AzleResult_1 = variant { Ok : Topic; Err : text };
+type _AzleResult_2 = variant { Ok : vec Language; Err : text };
+type _AzleResult_3 = variant { Ok : vec Topic; Err : text };
+service : () -> {
+  addLanguage : (text) -> (_AzleResult);
+  addTopic : (TopicPayload, text) -> (_AzleResult_1);
+  changeLanguageTitle : (text, text) -> (_AzleResult);
+  deleteLanguage : (text) -> (_AzleResult);
+  deleteTopic : (text) -> (_AzleResult_1);
+  findLanguageByName : (text) -> (_AzleResult) query;
+  getAllTopicsByLanguage : (text) -> (_AzleResult_2) query;
+  getLanguages : () -> (_AzleResult_2) query;
+  getTopicsByStatus : (bool) -> (_AzleResult_3) query;
+  updateTopic : (text, TopicPayload) -> (_AzleResult_1);
+}
