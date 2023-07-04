@@ -256,16 +256,55 @@ export function deleteTopic(id: string): Result<Topic, string> {
     });
 }
 
+$query;
+export function getTopicsByLanguage(lang_name: string): Result<Vec<Topic>, string> {
+  const language = findLanguageByName(lang_name).Ok;
+  if (language) {
+    const topics = topicStorage.values().filter(topic => topic.language_id === language.id);
+    return Result.Ok(topics);
+  }
+  return Result.Err(`Language '${lang_name}' not found.`);
+}
+
+$update;
+export function updateTopicStatus(id: string, closed: boolean): Result<Topic, string> {
+  const topic = topicStorage.get(id);
+  if (topic.Some) {
+    const updatedTopic = { ...topic.Some, closed };
+    topicStorage.insert(topic.Some.id, updatedTopic);
+    return Result.Ok(updatedTopic);
+  }
+  return Result.Err(`Topic with ID '${id}' not found.`);
+}
+
+$query;
+export function searchTopics(query: string): Result<Vec<Topic>, string> {
+  const topics = topicStorage.values().filter(topic => topic.title.toLowerCase().includes(query.toLowerCase()));
+  return Result.Ok(topics);
+}
+
+$query;
+export function getLanguageStatistics(): Result<Record<string, number>, string> {
+  const languages = languageStorage.values();
+  const statistics: Record<string, number> = {};
+
+  for (const language of languages) {
+    const topicsCount = topicStorage.values().filter(topic => topic.language_id === language.id).length;
+    statistics[language.title] = topicsCount;
+  }
+
+  return Result.Ok(statistics);
+}
 
 // a workaround to make uuid package work with Azle
 globalThis.crypto = {
-    getRandomValues: () => {
-        let array = new Uint8Array(32)
+  getRandomValues: () => {
+    let array = new Uint8Array(32)
 
-        for (let i = 0; i < array.length; i++) {
-            array[i] = Math.floor(Math.random() * 256)
-        }
-
-        return array
+    for (let i = 0; i < array.length; i++) {
+      array[i] = Math.floor(Math.random() * 256)
     }
+
+    return array
+  }
 }
