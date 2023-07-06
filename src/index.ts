@@ -1,4 +1,4 @@
-import { $query, $update, Record, StableBTreeMap, Vec, match, Result } from 'azle';
+import { $query, $update, Record, StableBTreeMap, Vec, match, Result, Principal, $init, ic } from 'azle';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -33,6 +33,9 @@ type Language = Record<{
     title: string;
 }>
 
+let adminPrincipal : Principal;
+
+
 const topicStorage = new StableBTreeMap<string, Topic>(0, 44, 1_000);
 
 const languageStorage = new StableBTreeMap<string, Language>(1, 44, 1_000);
@@ -44,8 +47,28 @@ const languageStorage = new StableBTreeMap<string, Language>(1, 44, 1_000);
    * @returns created language or an error message
    *
 */
+
+//set up the owner of the canister on deployment
+$init;
+export function init(admin : string) : void{
+    adminPrincipal = Principal.fromText(admin)
+}
+
+//check if one is admin
+$query;
+export function isAdmin(p : string) : boolean{
+    if( p === adminPrincipal.toString()){
+        return true;
+    }
+    return false;
+}
+
 $update;
 export function addLanguage(lang_name: string): Result<Language, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Language,string>("You are not the owner of the canister")
+    }
     if (!findLanguageByName(lang_name).Ok) {
         const language: Language = { id: uuidv4(), title: lang_name };
         languageStorage.insert(language.id, language);
@@ -66,6 +89,10 @@ export function addLanguage(lang_name: string): Result<Language, string> {
 */
 $update;
 export function changeLanguageTitle(old_name: string, new_name: string): Result<Language, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Language,string>("You are not the owner of the canister")
+    }
     const language_id: string | undefined = findLanguageByName(old_name).Ok?.id;
 
     if (language_id !== undefined) {
@@ -123,6 +150,10 @@ export function findLanguageByName(lang_name: string): Result<Language, string> 
 */
 $update;
 export function deleteLanguage(id: string): Result<Language, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Language,string>("You are not the owner of the canister")
+    }
     return match(languageStorage.remove(id), {
         Some: (deletedLanguage) => {
 
@@ -149,6 +180,10 @@ export function deleteLanguage(id: string): Result<Language, string> {
 */
 $update;
 export function addTopic(payload: TopicPayload, lang_name: string): Result<Topic, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Topic,string>("You are not the owner of the canister")
+    }
     const language_id: string | undefined = findLanguageByName(lang_name).Ok?.id;
 
     if (language_id !== undefined) {
@@ -205,6 +240,10 @@ export function getAllTopicsByLanguage(lang_name: string): Result<Vec<Language>,
 */
 $update;
 export function updateTopic(id: string, payload: TopicPayload): Result<Topic, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Topic,string>("You are not the owner of the canister")
+    }
     return match(topicStorage.get(id), {
         Some: (topic) => {
             const updatedTopic: Topic = { ...topic, ...payload };
@@ -250,6 +289,10 @@ export function getTopicsByStatus(closed: boolean): Result<Vec<Topic>, string> {
 */
 $update;
 export function deleteTopic(id: string): Result<Topic, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Topic,string>("You are not the owner of the canister")
+    }
     return match(topicStorage.remove(id), {
         Some: (deletedTopic) => Result.Ok<Topic, string>(deletedTopic),
         None: () => Result.Err<Topic, string>(`couldn't delete a topic with id=${id}. not found.`)
@@ -268,6 +311,10 @@ export function getTopicsByLanguage(lang_name: string): Result<Vec<Topic>, strin
 
 $update;
 export function updateTopicStatus(id: string, closed: boolean): Result<Topic, string> {
+    const caller = ic.caller().toString();
+    if(!isAdmin(caller)){
+        return Result.Err<Topic,string>("You are not the owner of the canister")
+    }
   const topic = topicStorage.get(id);
   if (topic.Some) {
     const updatedTopic = { ...topic.Some, closed };
