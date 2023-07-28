@@ -283,14 +283,20 @@ export function searchTopics(query: string): Result<Vec<Topic>, string> {
   return Result.Ok(topics);
 }
 
+// type to save languages statistics
+type Stats = Record<{
+    title: string;
+    count: number;
+}>
+
 $query;
-export function getLanguageStatistics(): Result<Record<string, number>, string> {
+export function getLanguageStatistics(): Result<Vec<Stats>, string> {
   const languages = languageStorage.values();
-  const statistics: Record<string, number> = {};
+  let statistics: Stats[] = [];
 
   for (const language of languages) {
     const topicsCount = topicStorage.values().filter(topic => topic.language_id === language.id).length;
-    statistics[language.title] = topicsCount;
+    statistics.push({title: language.title, count: topicsCount});
   }
 
   return Result.Ok(statistics);
